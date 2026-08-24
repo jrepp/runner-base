@@ -99,10 +99,17 @@ Then pin the emitted digest in the runner-router approved image list:
 
 ## Release flow
 
+SemVer releases are cut automatically with `semantic-release`
+(`codfish/semantic-release-action`):
+
 - Every merged `main` change publishes `docker.io/jrepp/runner-base:edge`.
-- A `v*` tag publishes `docker.io/jrepp/runner-base:<version>` and
-  `:latest`, plus a `runner-image.txt` release asset recording the immutable
-  digest for fleet pinning.
+- Conventional commits drive the next version: `feat` -> minor, `fix`/`perf` and
+  `build(deps)` toolchain bumps -> patch, `ci`/`docs`/`chore` -> no release. See
+  `.releaserc.js`.
+- When a release is cut, semantic-release creates a `vX.Y.Z` tag and GitHub
+  release; the tag push triggers `build.yml`, which publishes
+  `docker.io/jrepp/runner-base:<version>` and `:latest` and uploads the
+  `runner-image.txt` digest asset to the release.
 - CI runs a toolchain smoke test against the built image before publishing the
   digest.
 
