@@ -1,18 +1,32 @@
+# Toolchain bumps land themselves once the image builds and smoke-tests.
+#
+# The previous form used the pre-split `queue_rules.conditions` and a `queue`
+# action carrying `method`, neither of which is in the schema any more, so
+# Mergify rejected this file in full for as long as it existed. Nothing here
+# validated it and no pull request was ever opened, so it failed in silence.
+#
+# The selection now lives in queue_conditions rather than in a pull request
+# rule, because pull request rules are not executing on this account's newer
+# repositories, while a queue driven by merge protections does not depend on
+# them. It selects what the old rule selected: the dependency bot, a passing
+# build, versions.env touched, and neither the workflow nor the Dockerfile
+# touched. Anything else is merged by hand.
 queue_rules:
-  - name: default
-    conditions:
-      - check-success=build
-
-pull_request_rules:
-  - name: automerge dependabot toolchain updates
-    conditions:
+  - name: toolchain
+    queue_conditions:
       - author=dependabot[bot]
       - check-success=build
       - files~=^versions\.env$
-      - -files~=^\.github/workflows/build\.yml$
+      - -files~=^\.github/workflows/
       - -files~=^Dockerfile$
       - -title~=^build\(deps\)
-    actions:
-      queue:
-        name: default
-        method: squash
+    merge_conditions:
+      - check-success=build
+      - "#changes-requested-reviews-by=0"
+    merge_method: squash
+    commit_message_format:
+      title: pr-title
+      body: pr-body
+
+merge_protections_settings:
+  auto_merge_conditions: true
