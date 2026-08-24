@@ -7,6 +7,9 @@
 // Toolchain bumps (dependabot "build(deps):" commits) are patch releases so
 // every merged change republishes a versioned image; docs/ci/chore changes do
 // not create releases.
+//
+// The default (angular) preset is used so no plugin packages beyond the ones
+// bundled with semantic-release are required.
 module.exports = {
   branches: ["main"],
   tagFormat: "v${version}",
@@ -14,7 +17,6 @@ module.exports = {
     [
       "@semantic-release/commit-analyzer",
       {
-        preset: "conventionalcommits",
         releaseRules: [
           { type: "build", release: "patch" },
           { type: "ci", release: false },
@@ -23,12 +25,7 @@ module.exports = {
         ],
       },
     ],
-    [
-      "@semantic-release/release-notes-generator",
-      {
-        preset: "conventionalcommits",
-      },
-    ],
+    ["@semantic-release/release-notes-generator"],
     ["@semantic-release/github", {}],
   ],
 };

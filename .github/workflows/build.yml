@@ -25,10 +25,18 @@ jobs:
           set -euo pipefail
           # shellcheck disable=SC1091
           . versions.env
+          out=""
           for v in GO_VERSION NODE_VERSION PYTHON_VERSION UV_VERSION RUNNER_VERSION; do
-            printf '%s=%s\n' "${v}" "${!v}"
-          done > /tmp/build-args.env
-          echo "build-args=$(awk '{printf "%s ", $0}' /tmp/build-args.env)" >> "$GITHUB_OUTPUT"
+            out+="${v}=${!v}"$'\n'
+          done
+          {
+            printf '%s' "${out}"
+          } > /tmp/build-args.env
+          {
+            echo "build-args<<EOF"
+            cat /tmp/build-args.env
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v4
 

@@ -19,16 +19,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: codfish/semantic-release-action@v5
-        id: semantic
-        with:
-          additional-packages: |
-            ['conventional-changelog-conventionalcommits@7']
+      - name: Cut semantic release
+        run: npx --yes semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Report version
-        if: steps.semantic.outputs.new-release-published == 'true'
-        run: |
-          set -euo pipefail
-          echo "Released v${RELEASE_VERSION} (tag ${RELEASE_GIT_TAG})" >> "$GITHUB_STEP_SUMMARY"
