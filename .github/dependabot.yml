@@ -1,0 +1,57 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+
+  # Toolchain pins in versions.env are tracked with the regex updater. Each
+  # entry maps the file's key to an upstream project whose release channel
+  # Dependabot knows. Mergify automerges these when CI is green.
+  - package-ecosystem: regex
+    directory: /
+    schedule:
+      interval: daily
+    labels:
+      - dependencies
+      - toolchain
+    groups:
+      toolchains:
+        patterns:
+          - "*"
+
+customizations:
+  version-update:
+    regex:
+      - match:
+          dependency_name: go
+          update_type: major.minor.patch
+          src:
+            path: versions.env
+            pattern: "^GO_VERSION=(\\S+)$"
+      - match:
+          dependency_name: node
+          update_type: major.minor.patch
+          src:
+            path: versions.env
+            pattern: "^NODE_VERSION=(\\S+)$"
+      - match:
+          dependency_name: python
+          update_type: major.minor.patch
+          src:
+            path: versions.env
+            pattern: "^PYTHON_VERSION=(\\S+)$"
+      - match:
+          dependency_name: uv
+          update_type: major.minor.patch
+          src:
+            path: versions.env
+            pattern: "^UV_VERSION=(\\S+)$"
+      - match:
+          dependency_name: github-runner
+          update_type: major.minor.patch
+          src:
+            path: versions.env
+            pattern: "^RUNNER_VERSION=(\\S+)$"

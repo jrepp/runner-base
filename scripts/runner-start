@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Entrypoint for the runner base image.
+#
+# Implements the environment-file contract the runner-router writes for each
+# ephemeral allocation (runner/cmd/runner-router main.go envFile):
+#   REPO_URL            repository to register against (required)
+#   RUNNER_TOKEN        registration token (required)
+#   RUNNER_NAME         runner display name
+#   LABELS              comma-separated runner labels
+#   RUNNER_WORKDIR      workspace directory (router passes /workspace)
+#   EPHEMERAL           configure with --ephemeral when "true"
+#   DISABLE_AUTO_UPDATE pass --disableupdate when set
+#   UNSET_CONFIG_VARS   drop registration vars before running the job when
+#                       "true", so they never leak into the workflow env
+set -euo pipefail
+
+cd /actions-runner
+
+: "${REPO_URL:?REPO_URL is required}"
+: "${RUNNER_TOKEN:?RUNNER_TOKEN is required}"
+
+RUNNER_NAME="${RUNNER_NAME:-runner-$(hostname)}"
+LABELS="${LABELS:-self-hosted}"
+RUNNER_WORKDIR="${RUNNER_WORKDIR:-/workspace}"
+EPHEMERAL="${EPHEMERAL:-false}"
+
+configure() {
+    local -a args
+    args=(
+        --url "${REPO_URL}"
+        --token "${RUNNER_TOKEN}"
+        --name "${RUNNER_NAME}"
+        --labels "${LABELS}"
+        --work "${RUNNER_WORKDIR}"
+        --unattended
+        --replace
+    )
+    if [[ "${EPHEMERAL}" == "true" ]]; then
+        args+=(--ephemeral)
+    fi
+    if [[ -n "${DISABLE_AUTO_UPDATE:-}" ]]; then
+        args+=(--disableupdate)
+    fi
+    ./config.sh "${args[@]}"
+}
+
+if [[ ! -f .runner ]]; then
+    configure
+fi
+
+if [[ "${UNSET_CONFIG_VARS:-}" == "true" ]]; then
+    unset RUNNER_TOKEN REPO_URL
+fi
+
+exec ./run.sh

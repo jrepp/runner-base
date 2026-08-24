@@ -1,0 +1,27 @@
+# Keep the build context small and free of secrets and tooling metadata.
+# NOTE: scripts/ and the Dockerfile itself must stay in the context; the
+# runtime stage COPYs the entrypoint, healthcheck, and smoke-test scripts.
+
+# Version control
+.git
+
+# CI and automation (not needed by the image build)
+.github
+.mergify.yml
+
+# Local environment and secrets
+.env
+.env.*
+
+# Generated artifacts
+dist/
+
+# Documentation and examples
+*.md
+runner-image.example.yml
+
+# Editor and OS noise
+.idea/
+.vscode/
+*.swp
+.DS_Store

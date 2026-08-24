@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# CI smoke test: verify every baked-in toolchain runs inside the built image.
+# Invoked via `docker run --entrypoint /usr/local/bin/runner-smoke`.
+set -euo pipefail
+
+fail() {
+  printf 'SMOKE FAIL: %s\n' "$*" >&2
+  exit 1
+}
+
+go version >/dev/null 2>&1    || fail "go is not available"
+node --version >/dev/null 2>&1 || fail "node is not available"
+npx --version >/dev/null 2>&1  || fail "npx is not available"
+python3 --version >/dev/null 2>&1 || fail "python3 is not available"
+pip3 --version >/dev/null 2>&1    || fail "pip3 is not available"
+uv --version >/dev/null 2>&1      || fail "uv is not available"
+pipx --version >/dev/null 2>&1    || fail "pipx is not available"
+rustc --version >/dev/null 2>&1   || fail "rustc is not available"
+cargo --version >/dev/null 2>&1   || fail "cargo is not available"
+clang --version >/dev/null 2>&1   || fail "clang is not available"
+
+printf 'go:    %s\n' "$(go version)"
+printf 'node:  %s\n' "$(node --version)"
+printf 'py:    %s\n' "$(python3 --version)"
+printf 'uv:    %s\n' "$(uv --version)"
+printf 'rust:  %s\n' "$(rustc --version)"
+printf 'clang: %s\n' "$(clang --version | head -1)"
+printf 'SMOKE OK\n'

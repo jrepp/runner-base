@@ -1,0 +1,18 @@
+queue_rules:
+  - name: default
+    conditions:
+      - check-success=build
+
+pull_request_rules:
+  - name: automerge dependabot toolchain updates
+    conditions:
+      - author=dependabot[bot]
+      - check-success=build
+      - files~=^versions\.env$
+      - -files~=^\.github/workflows/build\.yml$
+      - -files~=^Dockerfile$
+      - -title~=^build\(deps\)
+    actions:
+      queue:
+        name: default
+        method: squash

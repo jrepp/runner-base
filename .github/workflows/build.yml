@@ -1,0 +1,92 @@
+name: Build and publish
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: runner-base-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Load tool versions
+        id: versions
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          . versions.env
+          for v in GO_VERSION NODE_VERSION PYTHON_VERSION UV_VERSION RUNNER_VERSION; do
+            printf '%s=%s\n' "${v}" "${!v}"
+          done > /tmp/build-args.env
+          echo "build-args=$(awk '{printf "%s ", $0}' /tmp/build-args.env)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Compute tags
+        id: tags
+        run: |
+          set -euo pipefail
+          tags="docker.io/jrepp/runner-base:edge"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tags="docker.io/jrepp/runner-base:${GITHUB_REF_NAME#v},docker.io/jrepp/runner-base:latest"
+          fi
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.tags.outputs.tags }}
+          build-args: ${{ steps.versions.outputs.build-args }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ github.ref_name }}
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          docker run --rm --entrypoint /usr/local/bin/runner-smoke \
+            "docker.io/jrepp/runner-base@${{ steps.build.outputs.digest }}"
+
+      - name: Record immutable image reference
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          printf 'docker.io/jrepp/runner-base@%s\n' "${{ steps.build.outputs.digest }}" > dist/runner-image.txt
+
+      - name: Publish release assets
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          prerelease=()
+          [[ "${GITHUB_REF_NAME}" == *-* ]] && prerelease=(--prerelease)
+          if ! gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release create "${GITHUB_REF_NAME}" --verify-tag --generate-notes "${prerelease[@]}"
+          fi
+          gh release upload "${GITHUB_REF_NAME}" dist/runner-image.txt --clobber
+
+      - name: Summarize digest
+        run: cat dist/runner-image.txt >> "$GITHUB_STEP_SUMMARY"

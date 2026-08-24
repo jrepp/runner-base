@@ -1,0 +1,14 @@
+# Example declarative derived runner image.
+# Commit this as .github/runner-image.yml in a repository that needs a custom
+# runner, then call jrepp/runner-base/.github/workflows/derive.yml.
+base: docker.io/jrepp/runner-base:edge
+
+toolchains:
+  # go: 1.27.0
+  # node: 26.7.0
+  # python: 3.14.6
+  rust: 1.88.0
+
+apt:
+  packages:
+    - imagemagick
