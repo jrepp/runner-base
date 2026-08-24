@@ -106,10 +106,11 @@ RUN set -eux; \
     try_install libkrb5-3 libkrb5-3t64; \
     try_install liblttng-ust1 liblttng-ust1t64; \
     try_install libunwind8 libunwind8t64; \
+    try_install libstdc++-16-dev libstdc++-15-dev libstdc++-14-dev; \
     apt-get install -y --no-install-recommends \
         ca-certificates git curl jq unzip xz-utils openssh-client \
         zlib1g libgcc-s1 libstdc++6 \
-        clang libstdc++-dev make pkg-config; \
+        clang make pkg-config; \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /usr/local/go /usr/local/go

@@ -1,16 +1,15 @@
-name: Build and publish
+name: Build and release
 
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: runner-base-build-${{ github.ref }}
+  group: runner-base-build
   cancel-in-progress: false
 
 jobs:
@@ -18,6 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
 
       - name: Load tool versions
         id: versions
@@ -45,24 +50,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Compute tags
-        id: tags
-        run: |
-          set -euo pipefail
-          tags="docker.io/jrepp/runner-base:edge"
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            tags="docker.io/jrepp/runner-base:${GITHUB_REF_NAME#v},docker.io/jrepp/runner-base:latest"
-          fi
-          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push
+      - name: Build and push edge
         id: build
         uses: docker/build-push-action@v7
         with:
           context: .
           push: true
           platforms: linux/amd64
-          tags: ${{ steps.tags.outputs.tags }}
+          tags: docker.io/jrepp/runner-base:edge
           build-args: ${{ steps.versions.outputs.build-args }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -77,24 +72,51 @@ jobs:
           docker run --rm --entrypoint /usr/local/bin/runner-smoke \
             "docker.io/jrepp/runner-base@${{ steps.build.outputs.digest }}"
 
-      - name: Record immutable image reference
+      # Tags created with the default GITHUB_TOKEN do not trigger workflows,
+      # so the versioned image tags are created here in the same run instead of
+      # by a separate tag-push workflow.
+      - name: Cut semantic release
+        id: release
+        run: npx --yes semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag versioned image
+        if: steps.release.outcome == 'success'
+        env:
+          EDGE_DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           set -euo pipefail
+          new_tag="$(git tag --points-at HEAD | sort -V | tail -1 || true)"
+          if [[ -z "${new_tag}" ]]; then
+            echo "no release for this commit; edge tag only"
+            exit 0
+          fi
+          version="${new_tag#v}"
+          docker buildx imagetools create \
+            --tag "docker.io/jrepp/runner-base:${version}" \
+            "docker.io/jrepp/runner-base:edge"
+          docker buildx imagetools create \
+            --tag "docker.io/jrepp/runner-base:latest" \
+            "docker.io/jrepp/runner-base:edge"
           mkdir -p dist
-          printf 'docker.io/jrepp/runner-base@%s\n' "${{ steps.build.outputs.digest }}" > dist/runner-image.txt
+          printf 'docker.io/jrepp/runner-base@%s\n' "${EDGE_DIGEST}" > dist/runner-image.txt
 
-      - name: Publish release assets
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Upload digest asset to release
+        if: steps.release.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          prerelease=()
-          [[ "${GITHUB_REF_NAME}" == *-* ]] && prerelease=(--prerelease)
-          if ! gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            gh release create "${GITHUB_REF_NAME}" --verify-tag --generate-notes "${prerelease[@]}"
-          fi
-          gh release upload "${GITHUB_REF_NAME}" dist/runner-image.txt --clobber
+          new_tag="$(git tag --points-at HEAD | sort -V | tail -1 || true)"
+          [[ -z "${new_tag}" ]] && exit 0
+          gh release upload "${new_tag}" dist/runner-image.txt --clobber
 
-      - name: Summarize digest
-        run: cat dist/runner-image.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Summarize
+        run: |
+          set -euo pipefail
+          if [[ -f dist/runner-image.txt ]]; then
+            cat dist/runner-image.txt
+          else
+            echo "edge built; no new release for this commit"
+          fi
