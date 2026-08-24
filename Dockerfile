@@ -61,14 +61,18 @@ RUN set -eux; \
     chmod -R a+rX /opt/rust /opt/cargo
 
 # --- GitHub Actions runner (checksummed official distribution) ---------------
+# The SHA-256 checksums are published inline in the release body, not as a
+# separate .sha256 asset.
 RUN set -eux; \
-    curl -fsSL "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz" -o "/tmp/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz"; \
-    curl -fsSL "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz.sha256" -o "/tmp/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz.sha256"; \
-    cd /tmp; \
-    sha256sum -c "actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz.sha256"; \
+    curl -fsSL "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz" -o /tmp/runner.tgz; \
+    curl -fsSL "https://api.github.com/repos/actions/runner/releases/tags/v${RUNNER_VERSION}" -o /tmp/runner-release.json; \
+    EXPECTED="$(sed -n "s/.*actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz <!-- BEGIN SHA linux-x64 -->\([0-9a-f]\{64\}\).*/\1/p" /tmp/runner-release.json)"; \
+    test -n "${EXPECTED}"; \
+    ACTUAL="$(sha256sum /tmp/runner.tgz | awk '{print $1}')"; \
+    test "${ACTUAL}" = "${EXPECTED}"; \
     mkdir -p /actions-runner; \
-    tar -C /actions-runner -xzf "/tmp/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz"; \
-    rm -f "/tmp/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz" "/tmp/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz.sha256"
+    tar -C /actions-runner -xzf /tmp/runner.tgz; \
+    rm -f /tmp/runner.tgz /tmp/runner-release.json
 
 # ---------------------------------------------------------------------------
 # Runtime stage: minimal base plus toolchains copied from the build stage.
