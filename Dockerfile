@@ -114,7 +114,7 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
         ca-certificates git curl jq unzip xz-utils openssh-client \
         zlib1g libgcc-s1 libstdc++6 \
-        clang make pkg-config; \
+        clang lld make pkg-config; \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /usr/local/go /usr/local/go
