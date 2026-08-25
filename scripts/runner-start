@@ -14,6 +14,10 @@
 #                       "true", so they never leak into the workflow env
 set -euo pipefail
 
+# The container runs as root (mounts are owned by the host service account);
+# the runner refuses to run as root unless explicitly allowed.
+export RUNNER_ALLOW_RUNASROOT=1
+
 cd /actions-runner
 
 : "${REPO_URL:?REPO_URL is required}"

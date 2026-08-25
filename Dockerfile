@@ -142,7 +142,8 @@ RUN set -eux; \
     ln -sf "${PYBIN}/pip3.14" /usr/local/bin/pip; \
     ln -sf /opt/uv/bin/pipx /usr/local/bin/pipx
 
-ENV PATH=/usr/local/go/bin:/opt/node/bin:/opt/cargo/bin:/usr/local/bin:/actions-runner:/usr/bin:/bin
+ENV PATH=/usr/local/go/bin:/opt/node/bin:/opt/cargo/bin:/usr/local/bin:/actions-runner:/usr/bin:/bin \
+    RUNNER_ALLOW_RUNASROOT=1
 
 # Entrypoint implements the runner-router env contract (REPO_URL, RUNNER_TOKEN,
 # RUNNER_NAME, LABELS, RUNNER_WORKDIR, EPHEMERAL, DISABLE_AUTO_UPDATE,
