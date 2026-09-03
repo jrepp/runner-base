@@ -20,6 +20,7 @@ cargo --version >/dev/null 2>&1   || fail "cargo is not available"
 clang --version >/dev/null 2>&1   || fail "clang is not available"
 clang-cl --version >/dev/null 2>&1 || fail "clang-cl is not available"
 lld-link --version >/dev/null 2>&1 || fail "lld-link is not available"
+gh --version >/dev/null 2>&1      || fail "gh is not available"
 
 printf 'go:    %s\n' "$(go version)"
 printf 'node:  %s\n' "$(node --version)"
@@ -29,4 +30,5 @@ printf 'rust:  %s\n' "$(rustc --version)"
 printf 'clang: %s\n' "$(clang --version | head -1)"
 printf 'clang-cl: %s\n' "$(clang-cl --version | head -1)"
 printf 'lld-link: %s\n' "$(lld-link --version)"
+printf 'gh:    %s\n' "$(gh --version | head -1)"
 printf 'SMOKE OK\n'

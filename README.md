@@ -12,6 +12,8 @@ of maintaining their own runner distributions. See
 
 - Ubuntu 26.04 slim base (multi-stage build; no source compilation).
 - GitHub Actions runner binary, checksum-verified against the official release.
+- GitHub CLI `2.99.0` (`gh`), checksum-verified against the official release,
+  so fleet workflows can call the GitHub API without installing it per job.
 - Go `1.27.0`, Node `26.7.0` (with `npx`), prebuilt CPython `3.14.6` via `uv`
   (no source compile), `rustup`/cargo, `pipx`, and the distro's current
   `clang`.
@@ -118,6 +120,7 @@ SemVer releases are cut automatically with `semantic-release`
 ```sh
 docker build -t runner-base:local . --build-arg RUNNER_VERSION=2.336.0 \
   --build-arg GO_VERSION=1.27.0 --build-arg NODE_VERSION=26.7.0 \
-  --build-arg PYTHON_VERSION=3.14.6 --build-arg UV_VERSION=0.12.5
+  --build-arg PYTHON_VERSION=3.14.6 --build-arg UV_VERSION=0.12.5 \
+  --build-arg GH_VERSION=2.99.0
 docker run --rm --entrypoint /usr/local/bin/runner-smoke runner-base:local
 ```

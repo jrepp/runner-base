@@ -31,7 +31,7 @@ jobs:
           # shellcheck disable=SC1091
           . versions.env
           out=""
-          for v in GO_VERSION NODE_VERSION PYTHON_VERSION UV_VERSION RUNNER_VERSION; do
+          for v in GO_VERSION NODE_VERSION PYTHON_VERSION UV_VERSION RUNNER_VERSION GH_VERSION; do
             out+="${v}=${!v}"$'\n'
           done
           {

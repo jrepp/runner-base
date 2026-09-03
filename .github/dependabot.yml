@@ -55,3 +55,9 @@ customizations:
           src:
             path: versions.env
             pattern: "^RUNNER_VERSION=(\\S+)$"
+      - match:
+          dependency_name: github-cli
+          update_type: major.minor.patch
+          src:
+            path: versions.env
+            pattern: "^GH_VERSION=(\\S+)$"

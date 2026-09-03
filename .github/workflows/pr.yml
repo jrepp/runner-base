@@ -30,7 +30,7 @@ jobs:
           . versions.env
           {
             echo "build-args<<EOF"
-            for v in GO_VERSION NODE_VERSION PYTHON_VERSION UV_VERSION RUNNER_VERSION; do
+            for v in GO_VERSION NODE_VERSION PYTHON_VERSION UV_VERSION RUNNER_VERSION GH_VERSION; do
               printf '%s=%s\n' "${v}" "${!v}"
             done
             echo "EOF"

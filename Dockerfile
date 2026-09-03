@@ -15,6 +15,7 @@ ARG NODE_VERSION=26.7.0
 ARG PYTHON_VERSION=3.14.6
 ARG UV_VERSION=0.12.5
 ARG RUNNER_VERSION=2.336.0
+ARG GH_VERSION=2.99.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -74,6 +75,22 @@ RUN set -eux; \
     tar -C /actions-runner -xzf /tmp/runner.tgz; \
     rm -f /tmp/runner.tgz /tmp/runner-release.json
 
+# --- GitHub CLI (checksummed official release tarball) -----------------------
+# Workflows on the fleet call `gh` for release, issue, and API work. Installed
+# from the official tarball rather than the apt repository so the version is
+# pinned in versions.env like every other toolchain here, and verified against
+# the checksums asset the release publishes alongside it.
+RUN set -eux; \
+    curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" -o /tmp/gh.tgz; \
+    curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_checksums.txt" -o /tmp/gh-checksums.txt; \
+    EXPECTED="$(awk -v f="gh_${GH_VERSION}_linux_amd64.tar.gz" '$2 == f {print $1}' /tmp/gh-checksums.txt)"; \
+    test -n "${EXPECTED}"; \
+    ACTUAL="$(sha256sum /tmp/gh.tgz | awk '{print $1}')"; \
+    test "${ACTUAL}" = "${EXPECTED}"; \
+    mkdir -p /opt/gh; \
+    tar -C /opt/gh -xzf /tmp/gh.tgz --strip-components=1; \
+    rm -f /tmp/gh.tgz /tmp/gh-checksums.txt
+
 # ---------------------------------------------------------------------------
 # Runtime stage: minimal base plus toolchains copied from the build stage.
 # ---------------------------------------------------------------------------
@@ -122,6 +139,7 @@ COPY --from=build /opt/node /opt/node
 COPY --from=build /opt/rust /opt/rust
 COPY --from=build /opt/cargo /opt/cargo
 COPY --from=build /opt/uv /opt/uv
+COPY --from=build /opt/gh /opt/gh
 COPY --from=build /actions-runner /actions-runner
 
 # Wire the toolchains onto /usr/local/bin and refresh the PATH order so the
@@ -130,6 +148,7 @@ RUN set -eux; \
     mkdir -p /opt/hostedtoolcache; \
     ln -sf /usr/local/go/bin/go /usr/local/bin/go; \
     ln -sf /opt/uv/uv /usr/local/bin/uv; \
+    ln -sf /opt/gh/bin/gh /usr/local/bin/gh; \
     PYBIN="$(dirname "$(uv python find "${PYTHON_VERSION}")")"; \
     ln -sf "${PYBIN}/python3.14" /usr/local/bin/python3.14; \
     ln -sf "${PYBIN}/python3.14" /usr/local/bin/python3; \
