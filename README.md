@@ -118,7 +118,7 @@ SemVer releases are cut automatically with `semantic-release`
 ## Local development
 
 ```sh
-docker build -t runner-base:local . --build-arg RUNNER_VERSION=2.336.0 \
+docker build -t runner-base:local . --build-arg RUNNER_VERSION=2.338.2 \
   --build-arg GO_VERSION=1.27.0 --build-arg NODE_VERSION=26.7.0 \
   --build-arg PYTHON_VERSION=3.14.6 --build-arg UV_VERSION=0.12.5 \
   --build-arg GH_VERSION=2.99.0
